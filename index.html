@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Violation Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f5f5f7;
+    --surface2: #eaeaef;
+    --border: #d8d8e0;
+    --text: #111118;
+    --text-dim: #444455;
+    --text-muted: #9090a8;
+    --accent: #d6244d;
+    --warn: #b86e00;
+    --ok: #0a7a4a;
+    --info: #1060b0;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+  }
+
+  /* Controls */
+  .controls {
+    padding: 16px 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+    max-width: 380px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 10px 8px 32px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text-muted); }
+
+  .filter-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.12s;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .filter-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .filter-btn.active-all { border-color: var(--text); color: var(--text); background: var(--surface2); }
+  .filter-btn.active-against { border-color: var(--accent); color: var(--accent); background: rgba(214,36,77,0.07); }
+  .filter-btn.active-depends { border-color: var(--warn); color: var(--warn); background: rgba(184,110,0,0.07); }
+  .filter-btn.active-safe { border-color: var(--ok); color: var(--ok); background: rgba(10,122,74,0.07); }
+
+  .count-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    height: calc(100vh - 109px);
+  }
+
+  /* Sidebar list */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .violation-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .violation-item:hover { background: var(--surface2); }
+  .violation-item.active { background: var(--surface2); border-left: 2px solid var(--accent); }
+
+  .violation-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .status-pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+
+  .pill-against { background: rgba(214,36,77,0.08); color: var(--accent); border: 1px solid rgba(214,36,77,0.25); }
+  .pill-depends { background: rgba(184,110,0,0.08); color: var(--warn); border: 1px solid rgba(184,110,0,0.25); }
+  .pill-safe { background: rgba(10,122,74,0.08); color: var(--ok); border: 1px solid rgba(10,122,74,0.25); }
+
+  /* Detail panel */
+  .detail {
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: var(--bg);
+  }
+
+  .detail::-webkit-scrollbar { width: 4px; }
+  .detail::-webkit-scrollbar-track { background: transparent; }
+  .detail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--text-muted);
+  }
+
+  .detail-empty-icon { font-size: 36px; opacity: 0.3; }
+  .detail-empty-text { font-family: var(--mono); font-size: 13px; }
+
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+    flex: 1;
+  }
+
+  .one-liner {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .one-liner-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-1 {
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-label.reject { color: var(--accent); }
+  .card-label.allow { color: var(--ok); }
+  .card-label.detect { color: var(--info); }
+  .card-label.edit { color: var(--warn); }
+  .card-label.creative { color: #c4b5fd; }
+  .card-label.tos { color: var(--text-muted); }
+  .card-label.look { color: var(--text-dim); }
+
+  .card-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .card-body {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-dim);
+  }
+
+  .bullet-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .bullet-list li {
+    padding-left: 14px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  .bullet-list li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--text-muted);
+  }
+
+  .tbc-note {
+    background: rgba(16,96,176,0.05);
+    border: 1px solid rgba(16,96,176,0.2);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--info);
+    font-family: var(--mono);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .tbc-icon { margin-right: 6px; }
+
+  .tos-ref {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    line-height: 1.6;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .sidebar.mobile-open { display: block; position: fixed; width: 100%; height: calc(100vh - 109px); z-index: 50; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">QA Violation Reference</div>
+    <div class="header-sub">Instagram TOS · Content Review Guide</div>
+  </div>
+  <div class="header-divider"></div>
+  <div class="header-sub" id="last-updated">19 violations loaded</div>
+</div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input class="search-input" type="text" id="searchInput" placeholder="Search violations..." />
+  </div>
+  <div class="filter-group">
+    <button class="filter-btn active-all" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="against">Against TOS</button>
+    <button class="filter-btn" data-filter="depends">Depends</button>
+    <button class="filter-btn" data-filter="safe">Not Breaking</button>
+  </div>
+  <div class="count-badge" id="countBadge">19 violations</div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="detail" id="detail">
+    <div class="detail-empty">
+      <div class="detail-empty-icon">◈</div>
+      <div class="detail-empty-text">Select a violation to view details</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const violations = [
+  {
+    name: "Sexualized Movements (Thrusting)",
+    status: "against",
+    statusLabel: "Against TOS",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "Never post content with thrusting, grinding, or riding motions. Reject all content with this movement.",
+    notAllowed: ["Hip thrusting", "Grinding on surfaces, chairs, or furniture", "Riding motions on anything", "Any rhythmic hip or pelvic motion that looks like a sex act", "Does not matter if the model is clothed or unclothed"],
+    allowed: ["None."],
+    lookFor: "Any back-and-forth or up-and-down hip motion. Even 1–2 seconds in an otherwise clean video will flag the whole reel. Clothing does not help — IG detects the motion pattern, not what the model is wearing.",
+    howDetected: "Motion detection scans every frame for pelvic movement patterns. Clothing does not help. This is one of IG's most confident detections.",
+    editNote: "Reject the whole video. Do not trim around it. Do not try to fix it.",
+    creativeNote: "Replace movement with confident stillness — stationary power poses, slow walks toward camera, seated throne-style poses. Dominant energy comes from eye contact and posture, not hip movement.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Implicit sexual activity (positions suggesting sexual contact). Also 18+ restricted → Simulating sexual activity."
+  },
+  {
+    name: "Strapon Harness",
+    status: "against",
+    statusLabel: "Against TOS",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "No harness or wearable toy in any frame. Reject all content showing this.",
+    notAllowed: ["Strapons visible anywhere in the video", "Harness straps showing at hips, thighs, or waist — even under clothing", "Any outline or shadow of a harness through fabric", "Holding or showing a harness to camera"],
+    allowed: ["None."],
+    lookFor: "Strap harness around hips, thighs, or waist. Check every frame including background. Even partial visibility under clothing triggers it.",
+    howDetected: "Object detection trained on harness strap patterns. Even partial visibility under clothing triggers it.",
+    editNote: "Reject. Screen every frame. If a harness shows through clothing at any point, reject the whole video.",
+    creativeNote: "Replace harness visuals with verbal dominance. Latex outfits, gloves, and boots convey dominance visually without triggering violations. Focus on the model's presence, not props.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Sex toys. Restricted Goods → Adult sexual arousal products."
+  },
+  {
+    name: "Profile Pic or Bio Violations",
+    status: "against",
+    statusLabel: "Against TOS",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "Profile pic must be safe, bio must have no banned words, no OF links, and posting patterns must look natural.",
+    notAllowed: ["Suggestive or sexual profile pictures", "Banned words in bio", "OF or adult platform links directly in bio", "Links to websites that redirect to adult content", "\"Fetish\" or \"domination services\" language in bio"],
+    allowed: ["Clean face-shot or lifestyle profile picture", "Link-in-bio pages that do not link directly to adult platforms", "Bio text that describes content without using banned words", "Natural, varied posting schedules"],
+    lookFor: "Read the bio word by word. Check the link destination. Look at the profile picture. Check posting patterns for identical timing. Any explicit language, OF references, or suggestive imagery = fix immediately.",
+    howDetected: "Profile violations cause account-wide reach restrictions or suspension. IG scans bios for prohibited keywords, evaluates profile pictures, monitors link destinations, and detects bot-like behaviour patterns.",
+    editNote: "Not applicable — this is a QM and IG poster responsibility.",
+    creativeNote: "Not applicable — profile setup is operational.",
+    tos: "Sexual Solicitation → Not Allowed → Fetish/domination services, links to pornographic websites. Spam → Not Allowed → High-frequency automated posting."
+  },
+  {
+    name: "Sexualized Movements (Jerking)",
+    status: "against",
+    statusLabel: "Against TOS",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "No camera angle that makes the viewer feel like they are receiving a sexual act. Reject all content with this angle.",
+    notAllowed: ["Camera pointing up from below that makes the viewer feel like they are receiving a sexual act", "Hand motions near the groin from the viewer's perspective", "Stroking motions toward the camera", "Close-up hip framing with hand movements", "Any shot where arms, hands, or mouth are near the groin area"],
+    allowed: ["Model chest and face only in frame — no arms, hands, or mouth visible", "The suggestion comes from facial expression and body movement alone", "No hand-to-groin closeness", "No oral gestures", "Camera must be at eye level or above"],
+    lookFor: "Watch from the viewer perspective. Ask: does this angle make me feel like I am receiving something sexual? If yes — reject.",
+    howDetected: "Scene AI evaluates camera angle + hand motion + proximity together. POV angles near the groin with hand movement are flagged.",
+    editNote: "Reject. If the camera placement implies the viewer is receiving, reject the whole video.",
+    creativeNote: "Use eye-level or slightly above-eye-level camera angles. Model can look down at camera from standing (conveying power) without camera at groin level. Side-profile and over-the-shoulder angles are safe alternatives. Potentially no arms or hands — just model chest and face — insinuating may be allowed.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Impending sexual activity (positions suggesting contact between hand, mouth, or genitals)."
+  },
+  {
+    name: "Visible Nipples",
+    status: "against",
+    statusLabel: "Against TOS",
+    tbc: "New trigger. No old data exists under this name. Receives ~10% of old \"Cleavage (50%+ Showing)\" entries where the actual issue was nipple visibility through fabric. Receives ~10% of old \"Skin Exposure (60%+ Showing)\" entries where nipples were the cause. Both require manual review.",
+    oneLiner: "No visible nipples in any form, including through clothing. Reject all content where nipples can be seen.",
+    notAllowed: ["Nipples visible through thin fabric, mesh, or wet clothing", "Outline of nipples visible through any material", "Nipples covered only by stickers, emoji, or digital overlay"],
+    allowed: ["None."],
+    lookFor: "Can you see nipples or their outline through the outfit? Check the full video — fabric shifts during movement. If visible at any point — reject.",
+    howDetected: "Nudity classifier specifically targets female nipple visibility. Even outline through fabric is detected. One of IG's most confident automated detections.",
+    editNote: "Reject. Check all frames — movement shifts fabric. Tell model to re-shoot with a padded or structured top.",
+    creativeNote: "Always use padded bras, structured tops, or nipple covers under any thin or form-fitting outfit. Latex is generally safe but thin latex can show outlines — check before shooting.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Visible female nipples."
+  },
+  {
+    name: "Spitting Content",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "No spitting on camera. No saliva visible. Reject all content with this.",
+    notAllowed: ["Actual spit leaving the mouth on camera", "Visible saliva on lips, chin, or any surface", "Drool close-ups", "SPH gestures (finger size comparisons toward camera)"],
+    allowed: ["Spitting motion without any visible saliva — the gesture only, no fluid produced or visible", "Blowing a kiss (no visible saliva)", "Licking lips briefly", "Dismissive facial expressions (eye roll, smirk, looking away)"],
+    lookFor: "Any saliva leaving the model's mouth on camera. Any close-up of saliva on lips, chin, or surfaces.",
+    howDetected: "Spit is listed word-for-word in the TOS alongside feces and urine under fetish content. IG classifiers recognise spitting as fetish behaviour.",
+    editNote: "Trim the video to remove the visible spit. If visible spit or saliva anywhere in any frame, reject/red edit to remove spit action as a whole. If the model does a spitting motion with no visible fluid it's ok.",
+    creativeNote: "Spitting motion without visible saliva is our best route — the contempt energy lands without the fluid. Also: blowing a kiss (no visible saliva), licking lips briefly, dismissive facial expressions. The key rule: if you can see liquid, it's a reject. If it's just the motion and expression, it can work.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Fetish → 'Feces, urine, spit, snot, menstruation or vomit.'"
+  },
+  {
+    name: "Sexually Explicit Audio",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "Rename from old \"Explicit Audio Spoken.\" 100% of old data maps here. Action: find-and-replace \"Explicit Audio Spoken\" → \"Sexually Explicit Audio\" in all historical entries.",
+    oneLiner: "No audio describing sexual acts, genitals, or arousal. If a banned word is said, editing must beep or silence it before posting.",
+    notAllowed: ["Moaning or sexual breathing sounds", "JOI instructions (telling the viewer what to do sexually)", "Dirty talk or sexual narration", "Dom commands that describe sexual acts (e.g. \"stroke it\")", "Orgasm sounds", "Describing genitals or arousal in detail"],
+    allowed: ["Dominant tone without sexual words — \"you'll do as I say\", \"you don't deserve this\", \"bow down\", \"I make the rules\"", "Background music with no explicit lyrics", "Content where the editor has removed the sexual words with a beep or silence AND removed or covered the matching subtitle with ***"],
+    lookFor: "Listen with video off. If any words describe genitals, arousal, or sexual acts — flag for editing. Dominant tone without sexual words = fine.",
+    howDetected: "IG transcribes audio frame-by-frame and scans against prohibited categories. Non-speech sounds (moaning, breathing) are also classified. Auto-subtitles make explicit audio visible to text classifiers too.",
+    editNote: "If one or two banned words but the rest is strong: remove the banned audio (beep or silence) AND remove or asterisk the matching subtitle. Disable auto-subtitles before posting. If the whole audio is explicit throughout — reject the full video. QM must approve the edited version before posting.",
+    creativeNote: "Dominant energy comes from tone, not explicit words. Coach models to use power language — commands, rhetorical questions, dismissive statements — without referencing sexual acts. Examples: 'Look at me when I'm talking to you.' 'You think you're worthy?' 'I didn't say you could speak.'",
+    tos: "Sexual Solicitation → Not Allowed → Sexually explicit language about genitals, arousal, or sexual encounters. Adult Nudity → Not Allowed → Extended audio of sexual activity."
+  },
+  {
+    name: "Chastity Cage",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "Cage must not be held, worn, or featured. Only allowed if visible in far background and not touched or mentioned.",
+    notAllowed: ["Cage held in hand or shown toward camera", "Cage worn on any person", "Model talking about the cage while the cage is visible on screen", "Lock-and-key devices placed where they are easy to see", "Any close-up of cage hardware"],
+    allowed: ["Cage visible in the far background (on a shelf) where it is not the focus, not held, not touched, and not mentioned in audio or caption — this is a calculated risk, not a TOS-approved exception", "Talking about chastity or denial without the cage being visible", "Lock-and-key necklaces or jewellery as a subtle reference"],
+    lookFor: "Is anyone touching the cage? Is the cage the focus of any frame? Is the audio talking about it while it is visible? If yes to any — reject. If it is on a shelf in the background and nobody mentions it — flag to QM.",
+    howDetected: "Object detection identifies cage shape whether on a person or displayed. Risk scales with screen time and how central the device is. Verbal reference + visual presence together creates a much stronger signal than either alone.",
+    editNote: "If the cage is being held or featured — reject. If it is in far background and not touched or referenced — flag to QM for decision. When in doubt, ask the model to re-shoot without the cage in background.",
+    creativeNote: "Use key on necklace instead of full chastity, put chastity in background.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → Sex toys / BDSM when sexual indicators present. When device is not touched and not referenced = borderline, QM decides."
+  },
+  {
+    name: "Prohibited Keywords in Text",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "No change. 100% of old data stays. Same name, same data.",
+    oneLiner: "No explicit sexual words in captions, on-screen text, or subtitles. If a model says a banned word, editor must remove it from subtitles.",
+    notAllowed: ["Sexual words in captions", "Coded slang used in a sexual way", "CTAs or links to adult platforms", "On-screen text with banned words", "Auto-subtitles that show banned words from the audio", "OF usernames or platform names anywhere"],
+    allowed: ["No captions at all — this is the safest option for clearly-spoken content", "Neutral captions with no sexual language", "Suggestive phrases where the meaning is only implied, not stated", "Manual subtitles using only the approved word list"],
+    lookFor: "Read every caption and on-screen text. Check if auto-subtitles are on. If any text describes sexual acts, genitals, or arousal — edit or reject.",
+    howDetected: "IG scans captions, on-screen text, and auto-generated subtitles. NLP models understand context — coded slang in a sexual context is caught, not just exact words.",
+    editNote: "If a model says a banned word: silence or beep the audio AND replace the subtitle with *** or remove it. If the caption has a banned word, rewrite using approved vocabulary. Disable auto-subtitles before posting if audio has any sensitive words. No captions is always safer than any caption. QM must approve edited versions.",
+    creativeNote: "Use the approved caption vocabulary list when writing scripts. If a line is powerful but has a banned word, rewrite it. 'I own you' works. Explicit sexual descriptions do not.",
+    tos: "Sexual Solicitation → Not Allowed → Sexually explicit language. Also → Not Allowed → Content containing usernames or links to pornographic websites."
+  },
+  {
+    name: "BDSM Props (Paddles; Crops; Collars; Leashes; Restraints)",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "Rename from old \"Spank / Paddle.\" 100% of old Spank/Paddle data maps here. New name is broader (adds collars, leashes, restraints) but all old data fits. Action: find-and-replace \"Spank / Paddle\" → \"BDSM Props (Paddles, Crops, Collars, Leashes, Restraints)\" in all historical entries.",
+    oneLiner: "No BDSM props held, used, or featured. Flag to QM if visible in background.",
+    notAllowed: ["Any BDSM prop held, used, or featured in the video", "Props shown while dom audio or suggestive posing is happening", "Collars with D-rings or leashes attached, worn by a person", "Handcuffs, rope, or restraints visible anywhere", "Model actively holding or using a crop or flogger"],
+    allowed: ["A prop barely visible in the far background where face is the focus, prop is not held and not mentioned in audio — this is a calculated risk, not a TOS-approved exception", "A fashion choker necklace with no D-ring and no leash attachment", "Edgy fashion accessories — chunky chains, leather wristbands, studded belts"],
+    lookFor: "Is the model holding a paddle, crop, flogger, or leash? Is there a collar with a D-ring? Are handcuffs, rope, or restraints visible? If yes — reject. If a prop is in far background and not touched — flag to QM.",
+    howDetected: "Object detection recognises paddles, crops, and similar tools as adult content. A prop in frame raises the overall risk score and reduces tolerance for any other signal.",
+    editNote: "If a prop is held or featured — reject. If in far background and not referenced — flag to QM. Do not approve on your own. The safer choice is always to remove the prop entirely.",
+    creativeNote: "Replace physical props with verbal authority. 'You know what happens if you disobey' is more powerful on IG than showing a paddle. For visual dominance: leather gloves, pointed fingers, crossed arms, stern expression. The model's body language IS the prop.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → BDSM (bondage and discipline, domination and submission) when sexual indicators present."
+  },
+  {
+    name: "Feet (Fetish-Framed)",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "New trigger. No old data exists under this name. Receives ~10% of old \"Skin Exposure (60%+ Showing)\" entries where bare feet in close-up were the cause. Requires manual review. Most data for this trigger will be new going forward.",
+    oneLiner: "Bare feet must not be the main subject of any video. Use nylon stockings to cover feet in foot-focused content.",
+    notAllowed: ["Full-frame bare feet videos where feet are the main thing on screen", "Bare foot close-ups with dom audio or worship language", "Bare feet as the main subject for more than a few seconds", "Camera focused on bare toes, soles, or arches with any dom framing"],
+    allowed: ["Feet in nylon stockings or tights — nylon makes IG treat feet as clothed", "Feet visible briefly during a shoe or sock removal where feet start covered and the bare moment is short and part of a wider shot", "Feet visible in a full-body or mid-shot talking-head where they are not the focus", "Shoe or fashion content where the focus is the footwear, not the bare foot"],
+    lookFor: "Are bare feet the main thing in the frame? Do bare feet fill most of the frame for more than a few seconds? Is there dom or fetish audio alongside bare feet? If yes — reject. If feet are in nylon, or briefly visible during a shoe-off moment in a wider shot, or incidental background — fine.",
+    howDetected: "Bare feet trigger skin-pixel detection. In foot fetish framing, close-up crops push feet to 30%+ of the frame, which combined with dom account history = fetish classification. Nylon reduces skin detection confidence because the classifier reads covered skin as clothing.",
+    editNote: "If bare feet fill the frame as the hero shot — reject. If audio says anything about worship or feet as fetish — reject regardless of what is on the feet. For foot content in nylon or shoe-removal reels where feet start covered and the reveal is brief — flag to QM for approval. QM checks: is the face still in frame? Is the bare feet moment under 3 seconds? Is the audio clean?",
+    creativeNote: "Nylon is the solution. Shoot all foot content with stockings or tights — the visual still works, the aesthetic is more elevated, and IG's classifier does not trigger. For variety: different nylon colours, patterns, ankle details. For shoe-removal content: start with shoes on, make the removal brief, keep face in frame throughout.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → BDSM when sexual indicators present. Feet-focused framing in dom context with fetish audio = BDSM. Nylon removes the skin trigger but not the fetish context trigger."
+  },
+  {
+    name: "Lingerie / Explicit See-Through Clothing",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "New trigger name. Receives ~30% of old \"Skin Exposure (60%+ Showing)\" data — entries where the model was in lingerie-only or see-through clothing. Requires manual review of old Skin Exposure entries to identify which ones were lingerie-caused.",
+    oneLiner: "No lingerie-only or see-through outfits as main clothing in dom-framed content.",
+    notAllowed: ["Lingerie or underwear as the only outfit", "Bra only with nothing over it", "Sheer or mesh tops where skin shows through over the chest or stomach", "See-through fabric over chest, buttocks, or groin"],
+    allowed: ["Nylon stockings and tights on legs and feet — these count as clothing", "Lingerie under a jacket, blazer, or robe that covers at least half the outfit", "Latex or PVC that fully covers the body", "Sheer sleeves or sheer fabric on arms and shoulders only — not over the chest or stomach"],
+    lookFor: "Is the main outfit lingerie or underwear with nothing over it? Can you see skin through fabric over chest, stomach, or groin? If yes — reject. Nylon on legs = fine. Sheer on arms = fine. Sheer on chest = reject.",
+    howDetected: "Nudity classifier measures skin-coloured pixels against total frame. Lingerie-only pushes to 60–70%. See-through fabric over intimate areas registers as skin, not clothing. In dom context, IG classifies as BDSM + sexual indicators, triggering removal.",
+    editNote: "If lingerie is the main outfit with nothing over it AND the content has dom framing — reject. If skin is visible through fabric over chest, stomach, or groin — reject. If lingerie appears in a clearly non-dom lifestyle context with no dom framing — flag to QM, do not auto-reject. Nylon on legs is always fine.",
+    creativeNote: "Latex is the strongest alternative — covers everything, looks dominant, performs well. For variety: blazers over lingerie, long coats, structured corsets with coverage, high-neck bodysuits, turtlenecks. The goal is the outfit reads as fashion from a thumbnail, not underwear.",
+    tos: "Adult Nudity & Sexual Activity → 18+ restricted → Near nudity / see-through clothing. In dom context → Not Allowed → BDSM when sexual indicators present."
+  },
+  {
+    name: "Submissive Positioning / Dom-Sub Interaction",
+    status: "depends",
+    statusLabel: "Against TOS — Depending 'Allowed'",
+    tbc: "Brand new trigger. Zero old data. New vertical just launched. Starts collecting data from today. No migration needed.",
+    oneLiner: "No worship positioning, no physical domination contact, no fetish props on the submissive. The submissive must be doing something functional, not posing in submission.",
+    notAllowed: ["Kneeling at the model's feet", "Person used as furniture (foot stool, seat)", "Camera angles from the ground looking up in a worship position", "Person on a leash", "Stepping on, pushing down, hand forcing head down, foot on back", "Submissive wearing fetish gear (collars with D-rings, harnesses, restraints)"],
+    allowed: ["Submissive doing tasks — cleaning, organising, running errands, preparing things — while the model directs", "Skits showing the power dynamic through everyday situations", "Both people in any clothing including latex", "Model giving verbal commands, submissive responding with body language and actions", "Normal physical interaction — handing items, walking together, sitting together", "Submissive in any position that is part of doing a task — not a worship pose"],
+    lookFor: "Is the second person in a worship position (kneeling at feet, on ground as furniture, worship angle)? Is the model physically dominating the second person (stepping on, pushing down, forcing head down)? Is the second person wearing fetish gear or on a leash? If yes to any — reject. If all answers are no — approved.",
+    howDetected: "Scene AI evaluates power-dynamic positioning between two people. Kneeling, ground-level positioning, and physical contact in dom framing are classified as BDSM. The physical positioning itself is the sexual indicator.",
+    editNote: "The question is: is the submissive doing something functional, or posing in submission? Task = approve. Worship position = reject. If borderline — flag to QM.",
+    creativeNote: "Film task-based scenarios: submissive cleaning while model watches, running errands while model directs from a chair, preparing outfits while model critiques. Use skits — model tests the submissive on a task and reacts to the result. Film in aspirational settings where the lifestyle context reads as powerful, not fetish. The model's verbal authority and the submissive's responsive actions ARE the content — no props or worship positioning needed.",
+    tos: "Adult Nudity & Sexual Activity → Not Allowed → BDSM (domination and submission) when sexual indicators present. Sexual indicators = worship positioning, physical domination contact, fetish gear. Clothing (including latex), verbal commands, and task-based dynamics are NOT sexual indicators."
+  },
+  {
+    name: "Chest-Focused Framing",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "New trigger name. Step 1: receives ~85% of old \"Cleavage (50%+ Showing)\" data as the default. Step 2: receives ~15% of old \"Skin Exposure (60%+ Showing)\" entries where chest was the focal point. Requires manual review. Step 3: over time, compliance lead reviews migrated entries and reclassifies any that were actually nipple visibility to \"Visible Nipples\" instead.",
+    oneLiner: "Face must be the main visual in every shot. Chest should never be the first thing the viewer sees.",
+    notAllowed: ["Close-up shots where chest fills most of the frame", "Push-up angles where cleavage is the main thing you see", "Leaning-forward moments where cleavage becomes the main visual — even if only for a few seconds", "Zoomed shots where chest is more than half the frame", "Using a chest-focused frame as the Reel cover image or first carousel slide — even if the rest of the video is face-focused"],
+    allowed: ["Cleavage visible but secondary — face is clearly the main thing in the frame", "Natural necklines on latex or everyday clothing where cleavage is just part of the outfit", "Full-body or mid-shots where face and upper body are the main visual"],
+    lookFor: "Where does the viewer's eye go first — face or chest? If chest — the framing needs adjusting. Check the full video — a model leaning forward mid-video can shift chest into focus.",
+    howDetected: "Image classifiers evaluate what percentage of the frame is chest area and whether it is the focal point. This does not trigger removal — it triggers 18+ restriction and recommendation suppression, killing organic reach. Check thumbnails and cover images — IG evaluates the Reel cover image MORE heavily than mid-video frames.",
+    editNote: "Check the strongest frame and the tightest crop. If viewer's eye goes to chest before face at any point, adjust zoom or angle.",
+    creativeNote: "High necklines, latex, and structured tops keep the focus on the face. When cleavage is part of the outfit, ensure camera is at eye level or slightly above so face dominates. Avoid any filming angle that looks down toward the chest. Never use a cleavage-focused image as the first carousel slide.",
+    tos: "Adult Nudity & Sexual Activity → 18+ restricted → Imagery where female breast(s) are the focus. Recommendations Guidelines → Sexually suggestive content not eligible for recommendation."
+  },
+  {
+    name: "Repurposed Content (IG Detects Repeat Posts)",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "Rename from old \"Repurposed Content (IG Identifies repeat content).\" 100% of old data maps here. Action: find-and-replace old name → new name in all historical entries.",
+    oneLiner: "IG may suppress or flag content it detects as repeated across accounts or posted too frequently. Only repurpose content that has never been flagged.",
+    notAllowed: ["Re-uploading content that was previously removed by IG — it is blacklisted and will be detected instantly", "Posting the exact same video to multiple accounts without changes", "Posting large batches of similar content in a short time"],
+    allowed: ["Repurposing safe, never-flagged content with real changes — new intro, different music, new text, re-cut", "Posting proven content to a different account with clear visual differences", "Spacing repurposed content across time — do not batch"],
+    lookFor: "Has this exact content been posted before on another account? Has any version of it been removed by IG? If previously removed — never re-upload. If never flagged but being reposted — ensure meaningful edits have been made. Check the blacklist log.",
+    howDetected: "IG uses perceptual hashing for removed content (instant detection). For non-removed content, IG detects duplicate/similar patterns across accounts and may suppress reach or flag for spam. High-volume trial reels from the same source trigger this pattern detection.",
+    editNote: "Check the blacklist log before approving any repurposed content. If the original was ever flagged, do not repurpose. For safe repurposed content, ensure each version has at least 3 meaningful changes: different intro, different audio, different text, different crop, or different sequence. Space trial reels across accounts and days. Publish and tag. If account is Flagged, hold for QM.",
+    creativeNote: "When content performs well, re-shoot the concept rather than re-editing the same footage. Same script, same energy, different outfit, different angle, different setting. Create more variations at the shoot rather than stretching one clip into many edits.",
+    tos: "Spam → Not Allowed → Posting at very high frequencies / repetitive content. Account Integrity → Accounts evading previous removal. Recommendations Guidelines → Unoriginal content not eligible for recommendation."
+  },
+  {
+    name: "Other / Insufficient Context",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "No change to existing data. Additionally receives ~20% of old \"Skin Exposure (60%+ Showing)\" entries that were compound. Step 1: find-and-replace all remaining old \"Skin Exposure (60%+ Showing)\" entries that have not been mapped to Lingerie, Chest-Focused Framing, Visible Nipples, or Feet → move to \"Other / Insufficient Context\" with a note \"migrated from old Skin Exposure — needs reclassification.\" Step 2: compliance lead reviews and reclassifies over time.",
+    oneLiner: "Use only when the trigger cannot be identified. If this gets used often, the team needs more training.",
+    notAllowed: ["Not applicable — diagnostic code."],
+    allowed: ["Not applicable."],
+    lookFor: "Multiple low-level signals that do not fit any single trigger. Content flagged with no obvious cause.",
+    howDetected: "IG's AI evaluates total signals. Multiple low-level indicators can combine into a flag that no single violation would cause.",
+    editNote: "Do not repost flagged content coded as Other. Log it and escalate within 24 hours. QM must review every instance to identify the real trigger and reclassify.",
+    creativeNote: "If Other flags increase for a specific model, review that model's content holistically — the issue may be cumulative signals rather than one specific problem.",
+    tos: "No single TOS line — represents compound low-level signals."
+  },
+  {
+    name: "Legs Showing",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "New trigger. Receives editing ~10% of old \"Skin Exposure (60%+ Showing)\" but these were almost certainly tagged incorrectly — bare legs alone should never have been flagged. Do not actively migrate old data here. Leave empty. If compliance lead finds old Skin Exposure entries that were purely legs, move them here.",
+    oneLiner: "No restrictions. Bare legs do not cause flags. Use nylon to reduce contribution to skin score.",
+    notAllowed: ["Nothing on its own."],
+    allowed: ["Bare legs, shorts, skirts above knee, thigh-high boots", "Nylon stockings and tights to reduce skin score"],
+    lookFor: "Nothing to flag for this alone. Legs contribute about 32% to IG's skin score — the single largest zone. Nylon reduces this contribution.",
+    howDetected: "Legs are not flagged as a standalone element. However, full bare legs + bare arms + face/neck approaches 57% skin score — close to the 60% threshold. Other triggers present alongside bare legs push the total over the line.",
+    editNote: "Do not reject content because legs are visible. If a video is borderline on skin score (model in shorts + crop top + bare arms), nylon stockings bring the score down by approximately 20–30% on the legs zone.",
+    creativeNote: "For videos where the model is already showing midriff or arms, adding nylon tights keeps the total skin score safely under 60%. Dark or opaque nylon works best. Build nylon into standard wardrobe for IG shoots.",
+    tos: "Not covered by any TOS policy. Skin score contribution is a classifier mechanism, not a TOS rule."
+  },
+  {
+    name: "Bare Stomach Exposed",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "New trigger. Receives ~0% of old data. Stomach was never the sole cause of a flag. Leave empty. This trigger exists to prevent future incorrect flagging, not because it has historical data.",
+    oneLiner: "No restrictions. Bare stomach does not cause flags.",
+    notAllowed: ["Nothing on its own."],
+    allowed: ["Crop tops, cut-outs, gym wear, corsets with stomach showing, any outfit with visible midriff"],
+    lookFor: "Nothing to flag for this alone.",
+    howDetected: "Bare stomach contributes about 12% to IG's total skin score — not enough to cross any threshold on its own.",
+    editNote: "Do not reject content because stomach is visible.",
+    creativeNote: "No restrictions. Midriff-showing outfits are standard fashion content on IG. Continue producing freely.",
+    tos: "Not covered by any TOS policy."
+  },
+  {
+    name: "Skin Exposure (60%+ Showing)",
+    status: "safe",
+    statusLabel: "Not Breaking TOS",
+    tbc: "Legacy category. Being phased out and redistributed to: Lingerie, Chest-Focused Framing, Visible Nipples, Feet (Fetish-Framed), Legs Showing, Bare Stomach Exposed, and Other / Insufficient Context.",
+    oneLiner: "Legacy catch-all — being replaced by specific triggers. Do not use for new entries.",
+    notAllowed: ["Total skin pixels exceeding 60% of frame in dom-framed content"],
+    allowed: ["Standard fashion and lifestyle content where skin is incidental"],
+    lookFor: "Identify which specific zone is causing the excess skin score: nipples, lingerie, feet, chest framing, or compound overlap.",
+    howDetected: "IG measures skin-coloured pixels as a percentage of total frame. Threshold is approximately 60% in dom account context.",
+    editNote: "Reclassify to the specific trigger that applies. Do not use this category for new flags.",
+    creativeNote: "Build nylon into standard wardrobe. Nylon on legs reduces skin score by ~20–30%. Latex and structured tops eliminate chest and stomach contributions.",
+    tos: "Adult Nudity & Sexual Activity → 18+ restricted → Near nudity in dom context."
+  }
+];
+
+let activeIndex = null;
+let currentFilter = 'all';
+let currentSearch = '';
+
+function getStatusClass(status) {
+  if (status === 'against') return 'pill-against';
+  if (status === 'depends') return 'pill-depends';
+  return 'pill-safe';
+}
+
+function getFilterClass(status) {
+  if (status === 'against') return 'against';
+  if (status === 'depends') return 'depends';
+  return 'safe';
+}
+
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const filtered = violations.filter((v, i) => {
+    const matchesFilter = currentFilter === 'all' || getFilterClass(v.status) === currentFilter;
+    const matchesSearch = !currentSearch || v.name.toLowerCase().includes(currentSearch.toLowerCase()) ||
+      v.oneLiner.toLowerCase().includes(currentSearch.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  document.getElementById('countBadge').textContent = `${filtered.length} violation${filtered.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    sidebar.innerHTML = `<div class="no-results"><span>◇</span><span>No results found</span></div>`;
+    return;
+  }
+
+  sidebar.innerHTML = filtered.map((v, i) => {
+    const realIdx = violations.indexOf(v);
+    return `<div class="violation-item ${activeIndex === realIdx ? 'active' : ''}" onclick="selectViolation(${realIdx})">
+      <div class="violation-name">${v.name}</div>
+      <span class="status-pill ${getStatusClass(v.status)}">${v.status === 'against' ? 'Against TOS' : v.status === 'depends' ? 'Depends' : 'Not Breaking'}</span>
+    </div>`;
+  }).join('');
+}
+
+function makeBullets(arr) {
+  if (!arr || arr.length === 0) return '<p class="card-body">None.</p>';
+  return `<ul class="bullet-list">${arr.map(item => `<li>${item}</li>`).join('')}</ul>`;
+}
+
+function selectViolation(index) {
+  activeIndex = index;
+  const v = violations[index];
+
+  document.getElementById('detail').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title">${v.name}</div>
+      <span class="status-pill ${getStatusClass(v.status)}">${v.statusLabel}</span>
+    </div>
+
+    ${v.tbc ? `<div class="tbc-note"><span class="tbc-icon">ℹ</span>${v.tbc}</div>` : ''}
+
+    <div class="one-liner">
+      <div class="one-liner-label">One-Line Rule</div>
+      ${v.oneLiner}
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label reject"><span class="card-dot"></span>Not Allowed</div>
+        ${makeBullets(v.notAllowed)}
+      </div>
+      <div class="card">
+        <div class="card-label allow"><span class="card-dot"></span>Allowed</div>
+        ${makeBullets(v.allowed)}
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label look"><span class="card-dot"></span>What to Look For</div>
+        <p class="card-body">${v.lookFor}</p>
+      </div>
+      <div class="card">
+        <div class="card-label detect"><span class="card-dot"></span>How IG Detects It</div>
+        <p class="card-body">${v.howDetected}</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label edit"><span class="card-dot"></span>Editing Note</div>
+        <p class="card-body">${v.editNote}</p>
+      </div>
+      <div class="card">
+        <div class="card-label creative"><span class="card-dot"></span>Creative Note</div>
+        <p class="card-body">${v.creativeNote}</p>
+      </div>
+    </div>
+
+    <div class="grid-1">
+      <div class="card">
+        <div class="card-label tos"><span class="card-dot"></span>TOS Reference</div>
+        <div class="tos-ref">${v.tos}</div>
+      </div>
+    </div>
+  `;
+
+  renderSidebar();
+}
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  currentSearch = this.value;
+  renderSidebar();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    currentFilter = this.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.className = 'filter-btn';
+    });
+    const map = { all: 'active-all', against: 'active-against', depends: 'active-depends', safe: 'active-safe' };
+    this.classList.add(map[currentFilter]);
+    renderSidebar();
+  });
+});
+
+renderSidebar();
+</script>
+</body>
+</html>
